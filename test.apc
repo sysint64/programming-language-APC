@@ -1,0 +1,77 @@
+/*include "sys.apc";
+include "math.apc";
+include "glfw3.apc";
+//include "opengl.apc";
+//include "string.apc";
+
+
+// Memory
+include "memory.apc";
+//
+struct st
+	x : int;
+end;
+
+def test(a : float) : st
+end;
+
+def main()
+	glfwInit();
+
+	win : ^GLFWwindow = glfwCreateWindow (640, 480, "Hello World with OpenGL :)", nil, nil);
+	
+	glfwMakeContextCurrent (win);
+	glfwSwapInterval (0);
+
+	t0 : float = glfwGetTime();
+	fps, frames : float = 0;
+
+	while (glfwWindowShouldClose(win) != 1) do
+		test(12);
+		t : float = glfwGetTime();
+
+		if ((t-t0) > 1) || (frames == 0) then
+			fps = frames / (t-t0);
+			t0 = t; frames = 0;
+		end;
+
+		frames++;
+
+		glfwSwapBuffers (win); 
+		glfwPollEvents();
+	end;
+
+	glfwDestroyWindow (win);
+	glfwTerminate();
+end;
+*/
+
+struct Allocator
+	start		:	ptr;
+	size		:	size_t;
+	usedMemory	:	size_t;
+	numAllocs	:	size_t;
+end;
+
+def createAllocator (var alloc : Allocator; size : size_t; start : ptr) inline
+	alloc.start			= start;
+	alloc.size			= size;
+	alloc.usedMemory	= 0;
+	alloc.numAllocs		= 0;
+end;
+
+include "import/sys.apc";
+include "import/math.apc";
+//include "import/glfw32.apc";
+include "import/string.apc";
+//include "mem.apc";
+include "import/memory/PointerMath.apc";
+include "import/memory/LinearAllocator.apc";
+include "import/memory/StackAllocator.apc";
+include "import/memory/FreeListAllocator.apc";
+include "import/memory/PoolAllocator.apc";
+//include "opengl.apc";
+
+def main()
+	i : int = 0;
+end;

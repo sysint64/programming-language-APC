@@ -1,0 +1,56 @@
+//
+struct PoolAllocator (Allocator)
+	objectSize		:	size_t;
+	objectAlignment	:	byte;
+	freeList		:	^ptr;
+end;
+
+//* Implementation *//
+//
+def createPoolAllocator (var allocator : PoolAllocator; size, objectSize : size_t; objectAlignment : byte; start : ptr) inline
+	//ASSERT(objectSize >= sizeof(void*));
+
+	createAllocator (allocator, size, start);
+	adjustment : byte = alignForwardAdjustment(start, objectAlignment);
+	allocator.freeList = cast(^ptr)(ptrAdd(start, adjustment));
+	numObjects : size_t = (size-adjustment)/objectSize;
+	p : ^ptr = allocator.freeList;
+
+	// Initialize free blocks list
+
+	for i : size_t = 0, numObjects-1 do
+		p^ = ptrAdd(p, objectSize);
+		p  = cast(^ptr)(p^);
+	end;
+
+	p^ = nil;
+end;
+
+def deletePoolAllocator (var allocator : PoolAllocator) inline
+	allocator.freeList = nil;
+end;
+
+def poolAllocate (var allocator : PoolAllocator; size : size_t; alignment : byte) : ptr inline
+	//ASSERT(size == _objectSize && alignment == _objectAlignment);
+
+	if (allocator.freeList == nil) then
+		return nil;
+	end;
+
+	p : ptr = allocator.freeList;
+	allocator.freeList = cast(^ptr)(allocator.freeList^);
+
+	allocator.usedMemory += size;
+	allocator.numAllocs++;
+
+	return p;
+end;
+
+def poolDeallocate (var allocator : PoolAllocator; p : ptr) inline
+	c : ptr = allocator.freeList;
+	(cast(^ptr)p)^ = c;
+
+	allocator.freeList = cast(^ptr)p;
+	allocator.usedMemory -= allocator.objectSize;
+	allocator.numAllocs--;
+end;

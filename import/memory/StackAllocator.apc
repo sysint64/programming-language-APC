@@ -1,0 +1,65 @@
+//
+struct StackHeader
+
+	//$ifdef DEBUG
+		prevAddr	:	ptr;
+	//$endif
+
+	adjustment		:	byte;
+end;
+//
+struct StackAllocator (Allocator)
+	header : StackHeader;
+	//$ifdef DEBUG
+		prevPos		:	ptr;
+	//$endif
+
+	currPos			:	ptr;
+end;
+
+def createStackAllocator (var allocator : StackAllocator; size : size_t; start : ptr) inline
+	createAllocator (allocator, size, start);
+
+	//$ifdef DEBUG
+		allocator.prevPos = nil;
+	//$endif
+end;
+
+def deleteStackAllocator (var allocator : StackAllocator) inline
+end;
+
+def stackAllocate (var allocator : StackAllocator; size : size_t; alignment : byte) : ptr inline
+	adjustment : byte = alignForwardAdjustmentWithHeader (allocator.currPos, alignment, sizeof(StackHeader));
+
+	if (allocator.usedMemory + adjustment + size > allocator.size) then
+		return nil;
+	end;
+
+	aligned_address : ptr 	= ptrAdd (allocator.currPos, adjustment);
+	header : ^StackHeader 	= ptrSub (aligned_address, sizeof(StackHeader));
+	header^.adjustment 		= adjustment;
+
+	//$ifdef DEBUG
+	header^.prevAddr		= allocator.prevPos;
+	allocator.prevPos		= aligned_address;
+	//$endif
+
+	allocator.currPos = ptrAdd(aligned_address, size);
+
+	allocator.usedMemory += size + adjustment;
+	allocator.numAllocs++;
+
+	return aligned_address;
+end;
+
+def stackDeallocate (var allocator : StackAllocator; p : ptr) inline
+	header : ^StackHeader = ptrSub (p, sizeof(StackHeader));
+	allocator.usedMemory -= uintptr_t (allocator.currPos) - uintptr_t(p) + header^.adjustment;
+	allocator.currPos = ptrSub (p, header^.adjustment);
+
+	//$ifdef DEBUG
+	allocator.prevPos = header^.prevAddr;
+	//$endif
+
+	allocator.numAllocs--;
+end;

@@ -1,0 +1,66 @@
+include "sys.apc";
+include "math.apc";
+include "glfw3.apc";
+include "opengl.apc";
+include "string.apc";
+//
+def main()
+	glfwInit();
+
+	win : ^GLFWwindow = glfwCreateWindow (640, 480, "Hello World with OpenGL :)", nil, nil);
+	
+	glfwMakeContextCurrent (win);
+	glfwSwapInterval (0);
+
+	t0 : float = glfwGetTime();
+	fps, frames : float = 0;
+
+	while (glfwWindowShouldClose(win) != 1) do
+		t : float = glfwGetTime();
+
+		if ((t-t0) > 1) || (frames == 0) then
+			fps = frames / (t-t0);
+			t0 = t; frames = 0;
+		end;
+
+		frames++;
+
+		glViewport( 0, 0, width, height );
+
+		// Clear color buffer
+		glClearColor( 1, 1, 1, 0.0 );
+		glClear( GL_COLOR_BUFFER_BIT );
+
+		// Select and setup the projection matrix
+		glMatrixMode( GL_PROJECTION );
+		glLoadIdentity;
+		gluPerspective( 65.0, 1.33, 1.0, 100.0 );
+
+		// Select and setup the modelview matrix
+		glMatrixMode( GL_MODELVIEW );
+		glLoadIdentity;
+		gluLookAt ( 0.0, 1.0, 0.0,    // Eye-position
+					0.0, 20.0, 0.0,   // View-point
+					0.0, 0.0, 1.0 );  // Up-vector
+
+		// Draw a rotating colorful triangle
+		glRotatef( 0.3*1 + 1*100.0, 0.0, 0.0, 1.0 );
+		glRotatef( 0.3 + t*100.0, 0.0, 0.0, 1.0 );
+		glBegin( GL_TRIANGLES );
+			glColor3f( 1.0, 0.0, 0.0 );
+			glVertex3f( -5.0, 0.0, -4.0 );
+			glColor3f( 0.0, 1.0, 0.0 );
+			glVertex3f( 5.0, 0.0, -4.0 );
+			glColor3f( 0.0, 0.0, 1.0 );
+			glVertex3f( 0.0, 0.0, 6.0 );
+		glEnd;
+
+		glFlush;
+
+		glfwSwapBuffers (win);
+		glfwPollEvents();
+	end;
+
+	glfwDestroyWindow (win);
+	glfwTerminate();
+end;

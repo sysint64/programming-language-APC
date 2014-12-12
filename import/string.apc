@@ -1,0 +1,266 @@
+//
+
+struct string
+	length	: int;
+	data	: [char];
+end;
+
+struct wstring
+	length	: int;
+	data	: [wchar];
+end;
+
+/**/
+
+def strLen (str : ^char) : int inline
+	ch  : char = str[0];
+	len : int  = 0;
+	//
+	while (ch != #0) do len++; end;
+	return len;
+end;
+
+def setLength (var s : string; const size : int) inline
+	//
+	if (s.length == 0) then
+		s.length = size+1;
+		s.data = new char(size+1);
+	else
+		tmp : string;
+		tmp.data = new char(size+s.length+1);
+		//
+		for i : int = 0, s.length do
+			tmp.data[i] = s.data[i];
+		end;
+
+		ss : ^string;
+		delete ss;
+		//s = tmp;
+	end;
+end;
+
+//* Operators *//
+
+def binary + (a, b : string) : string inline
+	res : string;
+	setLength (res, a.length+b.length);
+	//
+	memcpy (@res.data[0]       , @a.data[0], a.length*sizeof(char));
+	memcpy (@res.data[a.length], @b.data[0], b.length*sizeof(char));
+	//
+	res.data[res.length] = #0;
+	return res;
+end;
+
+def binary + (a : string; b : char) : string inline
+	res : string;
+	setLength (res, a.length+1);
+	memcpy (@res.data[0], @a.data[0], (a.length+1)*sizeof(char));
+	//
+	res.data[res.length-1] = b;
+	res.data[res.length]   = #0;
+
+	return res;
+end;
+
+def binary + (a : char; b : string) : string inline
+	res : string;
+	setLength (res, a.length+1);
+	memcpy (@res.data[1], @b.data[0], (b.length+1)*sizeof(char) );
+	//
+	res.data[0] = a;
+	res.data[res.length] = #0;
+
+	return res;
+end;
+
+def binary + (a : string; b : ^char) : string inline
+	res : string;
+	setLength (res, a.length+strLen(b));
+	//
+	memcpy (@res.data[0], @a.data[0], a.length*sizeof(char));
+	memcpy (@res.data[a.length],  b, strLen(b)*sizeof(char));
+	//
+	res.data[res.length] = #0;
+	return res;
+end;
+
+def binary + (a : ^char; b : string) : string inline
+	res : string;
+	setLength (res, b.length+strLen(a));
+	//
+	memcpy (@res.data[0], a, strLen(a)*sizeof(char));
+	memcpy (@res.data[strLen(a)], @b.data[0], b.length*sizeof(char));
+	//
+	res.data[res.length] = #0;
+	return res;
+end;
+
+def assign [] (var id : string; const ch : char; const idx : int) inline
+	id.data[idx] = ch;
+end;
+
+def assign (var id : string; const val : char) inline
+	setLength (id, 1);
+	id.data[0] = val;
+	id.data[1] = #0;
+end;
+
+def assign (var id : string; const val : ^char) inline
+	setLength (id, strLen(val));
+	id.data[id.length] = #0;
+	//
+	memcpy ( @id.data[0], val, strLen(val)*sizeof(char) );
+end;
+
+def binary = (const a, b : string) : bool inline
+	if a.length != b.length then return false; end;
+	for i : int = 0, a.length do
+		if a.data[i] != b.data[i] then return false; end;
+	end;
+	//
+	return true;
+end;
+
+def binary = (const a : string; const b : char) : bool inline swap
+	return (a.length == 1) and (a.data[0] == b);
+end;
+
+// Cast
+
+/*def cast (const from : char) : string inline
+	res : string;
+	setLength (res, 1);
+
+	res.data[0] = from;
+	res.data[1] = #0;
+
+	return res;
+end;
+
+/*def cast (const from : string) : ^char inline
+	return @from.data[0];
+end;
+
+def cast (const from :	^char) : string inline
+	res : string;
+	setLength (res, strLen(from));
+	res.data[res.length] = #0;
+	//
+	memcpy (@res.data[0], from, strLen(from)*sizeof(char));
+	return res;
+end;
+
+// Utils
+
+def decodeUTF8 (uc : wchar) : string
+	res : string;
+
+	if (uc == 0x0040) then return ""; end;
+	if (uc >= 0xD800) && (uc <= 0xDFFF) then return ""; end;
+	if (uc > 0x1) && (uc <= 0x007F) then
+		res += char(uc);
+	elsif (uc > 0x007F) && (uc <= 0x07FF) then
+		b1 : byte = 0xC0 | (uc & 0x7C0) >> 6;
+		b2 : byte = 0x80 | (uc & 0x3F);
+		//
+		res += b1; res += b2;
+	elsif (uc > 0x07FF) && (uc <= 0xFFFF) then
+		b1 : byte = 0xE0 | (uc & 0xF000) >> 12;
+		b2 : byte = 0x80 | (uc & 0xFC0) >> 6;
+		b3 : byte = 0x80 | (uc & 0x3F);
+		//
+		res += b1; res += b2;
+		res += b3;
+	elsif (uc > 0xFFFF) && (uc <= 0x10FFFF) then
+		b1 : byte = 0xF0 | (uc & 0x1C00000) >> 18;
+		b2 : byte = 0x80 | (uc & 0x3F000) >> 12;
+		b3 : byte = 0x80 | (uc & 0xFC0) >> 6;
+		b4 : byte = 0x80 | (uc & 0x3F);
+		//
+		res += b1; res += b2;
+		res += b3; res += b4;
+	end;
+end;
+
+def isDigit (const ch : char) : bool inline
+	return ch >= '0' && ch <= '9';
+end;
+
+def pos (a : char; b : string) : int
+	for i : int = 0, b.length-1 do
+		if b.data[i] == a then
+			return i;
+		end;
+	end;
+end;
+
+def copy (s : string; idx, count : int) : string
+	res : string;
+	//
+	if (idx <  0) then idx = 0; end;
+	if (idx >= s.length) then return res; end;
+	//
+	setLength (res, count);
+	j : int = 0;
+
+	for i : int = idx, idx+count-1 do
+		if (j >= count) then break; end;
+		res.data[j] = s.data[i];
+		j++;
+	end;
+
+	for j = 0, 10 do
+	end;
+
+	//res.data[count] = #0;
+	//return res;
+end;
+
+def del (var src : string; startChar : int; count : int)
+	if (startChar+count >= src.length) then return; end;
+	for i : int = startChar+count, src.length-1 do
+		src.data[i-count] = src.data[i];
+	end;
+
+	setLength(src, src.length-count);
+end;
+
+def str2int (const val : string) : int
+	res, j : int = 0;
+	//
+	for i : int = val.length-1, 0, -1 do
+		if (isDigit(val.data[i])) then res += (val.data[i]-'0') * powi (10, j);
+		else Error('Val is not digit!'); end;
+		//
+		j++;
+	end;
+	//
+	return res;
+end;
+
+def int2str (val : int) : string
+	if (val == 0) then return "0"; end;
+
+	res : string = "";
+	len : int = 0;
+	v   : int = val;
+	//
+	while (v != 0) do
+		len++;
+		v /= 10;
+	end;
+
+	setLength(res, len);
+
+	while (len != 0) do
+		x : int = val % 10;
+		val /= 10;
+		len--;
+
+		res.data[len] = x+'0';
+	end;
+
+	res.data[res.length] = #0;
+	return res;
+end;*/

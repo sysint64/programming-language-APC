@@ -1,0 +1,33 @@
+//
+struct LinearAllocator (Allocator)
+	currPos		:	ptr;
+end;
+
+def createLinearAllocator (var allocator : LinearAllocator; size : size_t; start : ptr) inline
+	createAllocator (allocator, size, start);
+	allocator.currPos = start;
+end;
+
+def deleteLinearAllocator (var allocator : LinearAllocator) inline
+end;
+
+def linearAllocate (var allocator : LinearAllocator; size : size_t; alignment : byte) : ptr inline
+	adjustment : byte = alignForwardAdjustment (allocator.currPos, alignment);
+
+	if(allocator.usedMemory + adjustment + size > allocator.size) then
+		return nil;
+	end;
+
+	aligned_address : uintptr_t = uintptr_t(allocator.currPos) + adjustment;
+	allocator.currPos = ptr(aligned_address + size);
+	allocator.usedMemory += size + adjustment;
+	allocator.numAllocs++;
+
+	return ptr(aligned_address);
+end;
+
+def clearLinearAllocator (var allocator : LinearAllocator) inline
+	allocator.numAllocs		= 0;
+	allocator.usedMemory	= 0;
+	allocator.currPos		= allocator.start;
+end;

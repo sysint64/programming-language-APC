@@ -1,0 +1,57 @@
+//module memory;
+//
+
+def alignForward (address : ptr; alignment : byte) : ptr inline
+	return ptr(uintptr_t(address) + uintptr_t(alignment-1) & uintptr_t(!(alignment-1)));
+end;
+
+def alignBackward (address : ptr; alignment : byte) : ptr inline
+	return ptr(uintptr_t(address) & uintptr_t(!(alignment-1)));
+end;
+
+def alignForwardAdjustment (const address : ptr; alignment : byte) : byte inline
+	adjustment : byte = alignment - (uintptr_t(address) & uintptr_t(alignment-1));
+	
+	if (adjustment == alignment) then
+		return 0; //already aligned
+	end;
+	
+	return adjustment;
+end;
+
+def alignForwardAdjustmentWithHeader (const address : ptr; alignment, headerSize : byte) : byte inline
+	adjustment  : byte = alignForwardAdjustment (address, alignment);
+	neededSpace : byte = headerSize;
+
+	if (adjustment < neededSpace) then
+		neededSpace -= adjustment;
+
+		//Increase adjustment to fit header
+		adjustment += alignment * (neededSpace / alignment);
+
+		if (neededSpace % alignment > 0) then
+			adjustment += alignment;
+		end;
+	end;
+
+	return adjustment;
+end;
+
+//inline u8 alignBackwardAdjustment(const void* address, u8 alignment)
+def alignBackwardAdjustment (const address : ptr; alignment : byte) : byte inline
+	adjustment : byte = uintptr_t(address) & uintptr_t(alignment-1);
+	
+	if (adjustment == alignment) then
+		return 0; //already aligned
+	end;
+	
+	return adjustment;
+end;
+
+def ptrAdd (p : ptr; x : size_t) : ptr inline
+	return ptr(uintptr_t(p) + x);
+end;
+
+def ptrSub (p : ptr; x : size_t) : ptr inline
+	return ptr(uintptr_t(p) - x);
+end;

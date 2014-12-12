@@ -1,0 +1,124 @@
+
+alias Handle	=  longint;
+alias TXID		=  longint; // FIXME
+alias DWORD		=  longint;
+alias HDC		=  longint;
+alias HGLRC		=  longint;
+alias BOOL		=  bool;
+alias HMODULE	=  longint;
+alias LPCSTR	= ^char;
+alias FARPROC	=  ptr;
+alias HGDIOBJ	=  longint;
+alias COLORREF	=  DWORD;
+
+packed struct Rect /**/ left, top, right, bottom : longint; end;
+packed struct POINTFLOAT /**/ x,y : float; end;
+packed struct GLYPHMETRICSFLOAT
+	gmfBlackBoxX	 : float;
+	gmfBlackBoxY	 : float;
+	gmfptGlyphOrigin : POINTFLOAT;
+	gmfCellIncX		 : float;
+	gmfCellIncY		 : float;
+end;
+
+packed struct LAYERPLANEDESCRIPTOR
+	nSize			: word;
+	nVersion		: word;
+	dwFlags			: DWORD;
+	iPixelType		: byte;
+	cColorBits		: byte;
+	cRedBits		: byte;
+	cRedShift		: byte;
+	cGreenBits		: byte;
+	cGreenShift		: byte;
+	cBlueBits		: byte;
+	cBlueShift		: byte;
+	cAlphaBits		: byte;
+	cAlphaShift		: byte;
+	cAccumBits		: byte;
+	cAccumRedBits	: byte;
+	cAccumGreenBits	: byte;
+	cAccumBlueBits	: byte;
+	cAccumAlphaBits	: byte;
+	cDepthBits		: byte;
+	cStencilBits	: byte;
+	cAuxBuffers		: byte;
+	iLayerPlane		: byte;
+	bReserved		: byte;
+	crTransparent	: COLORREF;
+end;
+
+packed struct PIXELFORMATDESCRIPTOR
+	nSize			: word;
+	nVersion		: word;
+	dwFlags			: DWORD;
+	iPixelType		: byte;
+	cColorBits		: byte;
+	cRedBits		: byte;
+	cRedShift		: byte;
+	cGreenBits		: byte;
+	cGreenShift		: byte;
+	cBlueBits		: byte;
+	cBlueShift		: byte;
+	cAlphaBits		: byte;
+	cAlphaShift		: byte;
+	cAccumBits		: byte;
+	cAccumRedBits	: byte;
+	cAccumGreenBits	: byte;
+	cAccumBlueBits	: byte;
+	cAccumAlphaBits	: byte;
+	cDepthBits		: byte;
+	cStencilBits	: byte;
+	cAuxBuffers		: byte;
+	iLayerType		: byte;
+	bReserved		: byte;
+	dwLayerMask		: DWORD;
+	dwVisibleMask	: DWORD;
+	dwDamageMask	: DWORD;
+end;
+
+alias Display	 = longint; // FIXME
+alias XVisualInfo = longint; // FIXME
+
+//$ifdef x86_64
+	def memcpy (dst, src : ptr; size : int64; alignVal : int = 4; isVolatile : bool = false)       external "llvm.memcpy.p0i8.p0i8.i64";
+	def memset (dst : ptr; val : byte; len : int64; alignVal : int = 4; isVolatile : bool = false) external "llvm.memset.p0i8.i64";
+//$else
+//	def memcpy (dst, src : ptr; size : int; alignVal : int = 4; isVolatile : bool = false)         external "llvm.memcpy.p0i8.p0i8.i32";
+//	def memset (dst : ptr; val : byte; len : int; alignVal : int = 4; isVolatile : bool = false)   external "llvm.memset.p0i8.i32";
+//$endif
+
+//
+def stdcall LoadLibrary    (lpLibFileName : ^wchar)  : HMODULE external "LoadLibraryW";
+def stdcall LoadLibraryA   (lpLibFileName : ^char)   : HMODULE external;
+def stdcall FreeLibrary    (hLibModule    : HMODULE) : bool    external;
+def stdcall GetProcAddress (hModule       : HMODULE; lpProcName : LPCSTR) : FARPROC external;
+
+// MMAN
+
+const PROT_NONE				= 0;
+const PROT_READ				= 1;
+const PROT_WRITE			= 2;
+const PROT_EXEC				= 4;
+
+const MAP_FILE				= 0;
+const MAP_SHARED			= 1;
+const MAP_PRIVATE			= 2;
+const MAP_TYPE				= 0xf;
+const MAP_FIXED				= 0x10;
+const MAP_ANONYMOUS			= 0x20;
+const MAP_ANON				= 0x20;
+
+const MAP_FAILED : ptr	= -1;
+
+/* Flags for msync. */
+const MS_ASYNC				= 1;
+const MS_SYNC				= 2;
+const MS_INVALIDATE			= 4;
+
+def mmap     (addr : ptr; len : size_t; prot, flags, fields : int; off : off_t) : ptr external;
+def munmap   (addr : ptr; len : size_t) : int external;
+def mprotect (addr : ptr; len : size_t; prot  : int) : int external;
+def msync    (addr : ptr; len : size_t; flags : int) : int external;
+def mlock    (const addr : ptr; len : size_t) : int external;
+def munlock  (const addr : ptr; len : size_t) : int external;

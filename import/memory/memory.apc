@@ -1,0 +1,107 @@
+//module memory;
+//
+// alignment
+
+struct Allocator
+	start		:	ptr;
+	size		:	size_t;
+	usedMemory	:	size_t;
+	numAllocs	:	size_t;
+end;
+
+def createAllocator (var alloc : Allocator; size : size_t; start : ptr) inline
+	alloc.start			= start;
+	alloc.size			= size;
+	alloc.usedMemory	= 0;
+	alloc.numAllocs		= 0;
+end;
+
+//$define Align16Bytes
+
+include "PointerMath.apc";
+include "LinearAllocator.apc";
+include "StackAllocator.apc";
+include "FreeListAllocator.apc";
+include "PoolAllocator.apc";
+//
+struct PoolMemoryPage
+	allocator	:	PoolAllocator;
+	block_size	:	byte;
+	mem			:   ptr;
+end;
+
+struct MMemory
+	count		:	int;
+	poolsCount	:	[25 x byte];
+	aCount		:	int;
+	poolPages	:  ^PoolMemoryPage; // for small blocks
+	allocator	:  ^FreeListAllocator; // main allocators
+end;
+
+var mem : MMemory;
+
+const smallBlockSizes4  = [4   , 16  , 36  , 64  , 100 , 144 , 196 , 256 ,
+						   324 , 400 , 484 , 576 , 676 , 784 , 900 , 1024,
+						   1156, 1296, 1444, 1600, 1764, 1936, 2116, 2304,
+						   2500, 2704, 2916, 3136, 3364, 3600, 3844, 4096,  // 4 KB
+						   4356, 2624, 4900, 5184, 5476, 5776, 6084, 6400,
+						   6724, 7056, 7396, 7744, 8100, 8196];             // 8 KB
+
+const smallBlockSizes8  = [8   , 16  , 64  , 144 , 256 , 400 , 576 , 784 ,
+						   1024, 1296, 1600, 1936, 2304, 2704, 3136, 3600,  // 4 KB
+						   4096, 4624, 5184, 5776, 6400, 7056, 7744, 8196]; // 8 KB
+
+const smallBlockSizes16 = [16  , 64  , 144 , 256 , 400 , 576 , 784 , 1024,
+						   1296, 1600, 1936, 2304, 2704, 3136, 3600, 4096,  // 4 KB
+						   4624, 5184, 5776, 6400, 7056, 7744, 8196];       // 8 KB
+//
+def initMemory()
+	mem.pageCount = 0;
+
+	for i : int = 0, 24 do
+		mem.poolsCount[i] = 0;
+	end;
+end;
+//
+def _new (size : size_t; alignment : byte = 4) : ptr inline
+	if (size <= 1024) then
+		n : int;
+		
+		for i : int = 0, 24 do
+			if (size > smallBlockSizes8[i]) then
+				size = smallBlockSizes8[i+1];
+				n = i+1;
+				break;
+			end;
+		end;
+
+		allocator : ^PoolAllocator;
+
+		if (mem.poolsCount[n] == 0) then
+			mem.poolPages = cast(^PoolMemoryPage) mmap(nil, sizeof(PoolMemoryPage), PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+			mem.poolPages[0].mem = mmap(nil, 8196, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+			mem.poolsCount[n]++;
+			mem.pageCount++;
+
+			allocator = @mem.poolPages[0].allocator;
+			createPoolAllocator (allocator^, sizeof(PoolMemoryPage), smallBlockSizes8[n], alignment, mem.poolPages[0].mem);
+		else
+			allocator = @mem.poolPages[mem.poolsCount[n]-1].allocator;
+		end;
+		
+		// alloce
+		if (allocator^.usedMemory+size >= 1024) then
+			mem.poolPages = cast(^PoolMemoryPage) mmap(nil, sizeof(PoolMemoryPage), PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+			mem.poolPages[mem.aCount].mem = mmap(nil, 8196, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+			mem.poolsCount[n]++;
+		else
+			return poolAllocate (allocator^, size, alignment);
+		end;
+
+	else
+		return mmap (nil, size, PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	end;
+end;
+
+def _delete (p : ptr) inline
+end;

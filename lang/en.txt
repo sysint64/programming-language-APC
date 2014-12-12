@@ -1,0 +1,52 @@
+E00 Error
+W00 Warning
+E01 no input file
+E02 error compilation
+E03 expected '%s'
+E04 expected expression
+E05 expected '%s' at end of declaration
+E06 expected '%s' after expression
+E07 expected '%s' after '%s' statement
+E08 expected unqualified-id
+E09 use of undeclared identifier '%s'
+E10 redefinition of '%s'
+E11 expected '%s' or '%s' after declaration
+E12 expected identifier
+E13 expected '%s' or '%s'
+E14 expected '%s' or '%s' in argument list
+E15 subscripted value is not an array, pointer, or vector
+E16 invalid suffix '%s' on integer constant
+E17 read-only variable is not assignable
+E18 invalid operands to binary expression
+E19 type '%s' can not convert to type '%s'
+E20 size of array has non-integer type '%s'
+E21 vector val must be type integer or floating point type
+E22 expected '%s' or '%s' in vector list
+E23 expected '%s' or '%s' in array list
+E24 expected '%s' in vector list
+E25 expected '%s' in array list
+E26 invalid operand type for instruction
+E27 break statement not within loop or case
+E28 continue statement not within a loop
+E29 alignment is not a power of two
+E30 expected '%s' statement
+E31 expected assign statement
+E32 expected '%s' or '%s' after assign statement
+E33 type must be '%s'
+E34 type must be '%s' or '%s'
+E35 no matching function for call to '%s'
+E36 expected binary or unary operator
+E37 size of argument list must be %s
+E38 type '%s' can not dereferance
+E39 no member named '%s' in '%s'
+E40 constructors and destructors must be methods
+E41 missing default argument on parameter(s) '%s'
+E42 use of undeclared typename '%s'
+E43 invalid use of '%s' in non-member function
+E44 '%s' directive for only binary operators
+E45 assigning to '%s' from incompatible type '%s'
+E46 '%s' is not polymorphic
+E47 included file '%s' was not found
+W01 declaration does not declare anything
+W02 division by zero
+W03 type of variable is '%s'

@@ -1,0 +1,2 @@
+E01 Undeclared identifier '%s'
+E02 Identifier redeclared '%s'

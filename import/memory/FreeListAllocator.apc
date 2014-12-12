@@ -1,0 +1,148 @@
+//
+struct FreeListHeader
+	size		:	size_t;
+	adjustment	:	byte;
+	pageId		:	int;
+end;
+//
+struct FreeBlock
+	size		:	size_t;
+	next		:  ^FreeBlock;
+end;
+//
+struct FreeListAllocator (Allocator)
+	header		:	FreeListHeader;
+	freeBlocks	:  ^FreeBlock;
+end;
+
+//* Implementation *//
+//
+def createFreeListAllocator (var allocator : FreeListAllocator; size : size_t; start : ptr) inline
+	createAllocator (allocator, size, start);
+	allocator.freeBlocks^.size = size;
+	allocator.freeBlocks^.next = nil;
+end;
+
+def deleteFreeListAllocator (var allocator : FreeListAllocator) inline
+	allocator.freeBlocks = nil;
+end;
+
+def getSizeFreeList (var allocator : FreeListAllocator; size : size_t; alignment : byte) : byte inline
+	free_block : ^FreeBlock = allocator.freeBlocks;
+
+	while (free_block != nil) do
+		adjustment : byte   = alignForwardAdjustmentWithHeader (free_block, alignment, sizeof(FreeListHeader));
+		total_size : size_t = size + adjustment;
+
+		if (free_block^.size < total_size) then
+			free_block = free_block^.next;
+			continue;
+		end;
+
+		if (free_block^.size - total_size <= sizeof(FreeListHeader)) then
+			total_size = free_block^.size;
+		end;
+
+		return total_size;
+	end;
+end;
+
+def freeListAllocate (var allocator : FreeListAllocator; size : size_t; alignment : byte; const pageId : int = 0) : ptr inline
+	//assert (size != 0 && alignment != 0);
+
+	prev_free_block : ^FreeBlock = nil;
+	free_block		: ^FreeBlock = allocator.freeBlocks;
+
+	while (free_block != nil) do
+		adjustment : byte   = alignForwardAdjustmentWithHeader (free_block, alignment, sizeof(FreeListHeader));
+		total_size : size_t = size + adjustment;
+
+		if (free_block^.size < total_size) then
+			prev_free_block = free_block;
+			free_block = free_block^.next;
+			continue;
+		end;
+
+		//assert(sizeof(AllocationHeader) >= sizeof(FreeBlock), "sizeof(AllocationHeader) < sizeof(FreeBlock)");
+
+		if (free_block^.size - total_size <= sizeof(FreeListHeader)) then
+			total_size = free_block^.size;
+
+			if (prev_free_block != nil) then
+				prev_free_block^.next = free_block^.next;
+			else
+				allocator.freeBlocks = free_block^.next;
+			end;
+		else
+			next_block : ^FreeBlock = ptrAdd (free_block, total_size);
+			next_block^.size = free_block^.size - total_size;
+			next_block^.next = free_block^.next;
+
+			if (prev_free_block != nil) then
+				prev_free_block^.next = next_block;
+			else
+				allocator.freeBlocks = next_block;
+			end;
+		end;
+
+		aligned_address : uintptr_t = uintptr_t(free_block) + adjustment;
+		header : ^FreeListHeader = (ptr(aligned_address) - sizeof (FreeListHeader)) as ^FreeListHeader; // FIXME
+		header^.size = total_size;
+		header^.adjustment = total_size;
+		header^.pageId = pageId;
+
+		allocator.usedMemory += total_size;
+		allocator.numAllocs++;
+
+		//assert (alignForwardAdjustment (aligned_address, alignment) == 0);
+
+		return ptr(aligned_address);
+	end;
+end;
+
+def freeListDeallocate (var allocator : FreeListAllocator; p : ptr) inline
+	//ASSERT(p != nullptr);
+	header : ^FreeListHeader = ptrSub(p, sizeof(FreeListHeader));
+
+	block_start	: uintptr_t	= uintptr_t(p) - header^.adjustment;
+	block_size	: size_t	= header^.size;
+	block_end	: uintptr_t	= block_start + block_size;
+
+	prev_free_block : ^FreeBlock = nil;
+	free_block		: ^FreeBlock = allocator.freeBlocks;
+
+	while (free_block != nil) do
+		if (uintptr_t(free_block) >= block_end) then
+			break;
+		end;
+
+		prev_free_block = free_block;
+		free_block = free_block^.next;
+	end;
+
+	if (prev_free_block == nil) then
+		prev_free_block = cast(^FreeBlock)ptr(block_start);
+		prev_free_block^.size = block_size;
+		prev_free_block^.next = allocator.freeBlocks;
+
+		allocator.freeBlocks = prev_free_block;
+	elsif (uintptr_t(prev_free_block) + prev_free_block^.size == block_start) then
+		prev_free_block^.size += block_size;
+	else
+		temp : ^FreeBlock;
+		temp = cast(^FreeBlock)ptr(block_start);
+
+		temp^.size = block_size;
+		temp^.next = prev_free_block^.next;
+		prev_free_block^.next = temp;
+		prev_free_block = temp;
+	end;
+
+	if (free_block != nil/* && uintptr_t(free_block) == block_end*/) then
+		prev_free_block^.size += free_block^.size;
+		prev_free_block^.next = free_block^.next;
+	end;
+
+	allocator.numAllocs--;
+	allocator.usedMemory -= block_size;
+end;
