@@ -42,9 +42,9 @@ alias vec3i = [3 x int];
 def binary+ (lhs, rhs : vec3i) : vec3i inline swap 
     res : vec3i; 
 
-    res[0] = lhs[0]+rhs[0]; 
-    res[0] = lhs[0]+rhs[0]; 
-    res[0] = lhs[0]+rhs[0]; 
+    res[0] = lhs[0]+rhs[0];
+    res[1] = lhs[1]+rhs[1];
+    res[2] = lhs[2]+rhs[2];
     
     return res; 
 end; 
